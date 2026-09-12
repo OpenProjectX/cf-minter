@@ -1,0 +1,60 @@
+name: publish image
+
+# Publishes to GHCR, which for a private repository produces a PRIVATE package.
+#
+# That is not incidental. The CloakBrowser binary in the base image is licensed
+# "free to use, no redistribution": its internal-use clause permits Docker
+# images, CI runners and internal artifact repositories, but publishing the
+# image publicly would hand the binary to third parties. Keep this package
+# private. The base image itself is public on Docker Hub, so no registry
+# credentials are needed to build.
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE: ${{ github.repository }}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=branch
+            type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # The base pins a CloakBrowser version; override to move it without
+          # editing the Dockerfile.
+          build-args: |
+            CLOAKBROWSER_VERSION=${{ vars.CLOAKBROWSER_VERSION || '0.5.10' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

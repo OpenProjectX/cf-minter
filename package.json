@@ -1,0 +1,19 @@
+{
+  "name": "cf-minter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Solves Cloudflare challenges and hands back the clearance cookie. See docs/bt-browser-runtime.md.",
+  "scripts": {
+    "start": "node --experimental-strip-types src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "cloakbrowser": "^0.5.10"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "playwright-core": "^1.49.1",
+    "typescript": "^5.7.2"
+  }
+}
